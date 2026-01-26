@@ -207,6 +207,14 @@ export default function VotePage({ params }: { params: { id: string } }) {
               )}
             </div>
 
+            {/* 倾向标题 */}
+            <div className="mb-4 text-center">
+              <h3 className="text-lg font-semibold text-white mb-2">你的倾向</h3>
+              <p className="text-sm text-gray-500">
+                如果没有明确倾向，可以选择 5/5；如果有强烈倾向，可以选择 10/0 或 0/10
+              </p>
+            </div>
+
             {/* Score Display - 数字大小随分数变化，固定高度 */}
             <div className="flex justify-between items-center mb-4">
               <div className="text-center flex-1">
