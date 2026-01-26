@@ -27,6 +27,7 @@ export default function VotePage({ params }: { params: { id: string } }) {
   const [submitted, setSubmitted] = useState(false)
   const [existingVote, setExistingVote] = useState<{ scoreA: number; scoreB: number } | null>(null)
   const [isClosed, setIsClosed] = useState(false)
+  const [comment, setComment] = useState('')
 
   useEffect(() => {
     loadPoll()
@@ -126,6 +127,7 @@ export default function VotePage({ params }: { params: { id: string } }) {
           name: name.trim(),
           scoreA,
           location,
+          comment: comment.trim() || undefined,
         }),
       })
 
@@ -315,6 +317,21 @@ export default function VotePage({ params }: { params: { id: string } }) {
                   A:{score} / B:{10 - score}
                 </button>
               ))}
+            </div>
+
+            {/* Comment */}
+            <div className="mb-8">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                💬 听我解释 <span className="text-gray-500 font-normal">（可选，{100 - comment.length}/100字）</span>
+              </label>
+              <textarea
+                placeholder="为什么这样投票？（可选）"
+                maxLength={100}
+                rows={2}
+                className="w-full px-4 py-3 bg-poll-dark/50 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-poll-accent/50 transition-all resize-none text-sm"
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+              />
             </div>
 
             {/* Submit */}

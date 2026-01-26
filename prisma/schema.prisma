@@ -36,6 +36,7 @@ model Vote {
   name      String
   scoreA    Int
   scoreB    Int
+  comment   String?  // 听我解释（备注）
   userAgent String?
   ipHash    String?
   location  String?  // 地理位置

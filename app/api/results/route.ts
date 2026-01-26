@@ -63,6 +63,7 @@ export async function GET(request: NextRequest) {
       name: v.name,
       scoreA: v.scoreA,
       scoreB: v.scoreB,
+      comment: v.comment,
       location: v.location,
       excluded: v.excluded,
       createdAt: v.createdAt,

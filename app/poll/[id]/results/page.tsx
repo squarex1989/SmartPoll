@@ -21,6 +21,7 @@ interface VoteDetail {
   name: string
   scoreA: number
   scoreB: number
+  comment?: string | null
   location?: string | null
   excluded: boolean
   createdAt: string
@@ -287,7 +288,7 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
                 >
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-3">
-                      <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm ${
+                      <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm flex-shrink-0 ${
                         vote.excluded ? 'bg-red-500/20 text-red-400' : 'bg-white/10 text-gray-400'
                       }`}>
                         {vote.excluded ? '✕' : index + 1}
@@ -301,7 +302,7 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-shrink-0">
                       <span 
                         className={`px-3 py-1 rounded-lg text-sm font-semibold ${vote.excluded ? 'opacity-50' : ''}`}
                         style={{
@@ -322,7 +323,14 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
                       </span>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between text-xs">
+                  {vote.comment && (
+                    <div className="mb-2 ml-11">
+                      <p className={`text-sm italic ${vote.excluded ? 'text-gray-600' : 'text-gray-400'}`}>
+                        💬 "{vote.comment.length > 50 ? vote.comment.slice(0, 50) + '...' : vote.comment}"
+                      </p>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between text-xs ml-11">
                     <div className="flex items-center gap-4 text-gray-500">
                       <span>🕐 {formatTime(vote.createdAt)}</span>
                       {vote.location && <span>📍 {vote.location}</span>}

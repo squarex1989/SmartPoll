@@ -5,7 +5,7 @@ import prisma from '@/lib/db'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { pollId, name, scoreA, location } = body
+    const { pollId, name, scoreA, location, comment } = body
 
     // 基本验证
     if (!pollId || !name || scoreA === undefined) {
@@ -49,6 +49,9 @@ export async function POST(request: NextRequest) {
     // 获取额外信息
     const userAgent = request.headers.get('user-agent') || undefined
 
+    // 截断备注到100字
+    const trimmedComment = comment ? comment.slice(0, 100) : undefined
+
     // Upsert: 同名则更新，否则创建
     const vote = await prisma.vote.upsert({
       where: {
@@ -62,6 +65,7 @@ export async function POST(request: NextRequest) {
         scoreB: scoreBNum,
         userAgent,
         location: location || undefined,
+        comment: trimmedComment,
         updatedAt: new Date(),
       },
       create: {
@@ -71,6 +75,7 @@ export async function POST(request: NextRequest) {
         scoreB: scoreBNum,
         userAgent,
         location: location || undefined,
+        comment: trimmedComment,
       },
     })
 
