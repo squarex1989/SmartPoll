@@ -27,6 +27,11 @@ input[type="range"] {
   transition: all 0.2s ease;
 }
 
+/* 翻转滑杆方向：左边A，右边B */
+input[type="range"].slider-reversed {
+  transform: scaleX(-1);
+}
+
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;

@@ -248,7 +248,7 @@ export default function VotePage({ params }: { params: { id: string } }) {
               </div>
             </div>
 
-            {/* Slider */}
+            {/* Slider - 翻转方向：左边给A，右边给B */}
             <div className="mb-8">
               <input
                 type="range"
@@ -256,13 +256,13 @@ export default function VotePage({ params }: { params: { id: string } }) {
                 max="10"
                 value={scoreA}
                 onChange={(e) => setScoreA(parseInt(e.target.value))}
-                className="w-full"
+                className="w-full slider-reversed"
                 style={{ '--slider-progress': `${sliderProgress}%` } as React.CSSProperties}
               />
               <div className="flex justify-between text-xs text-gray-500 mt-2">
-                <span>全给 B</span>
-                <span>平分</span>
                 <span>全给 A</span>
+                <span>平分</span>
+                <span>全给 B</span>
               </div>
             </div>
 
