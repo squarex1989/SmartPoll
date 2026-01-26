@@ -25,6 +25,8 @@ export interface Vote {
   scoreB: number
   userAgent?: string | null
   ipHash?: string | null
+  location?: string | null
+  excluded?: boolean
   createdAt: Date
   updatedAt: Date
 }

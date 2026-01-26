@@ -38,6 +38,8 @@ model Vote {
   scoreB    Int
   userAgent String?
   ipHash    String?
+  location  String?  // 地理位置
+  excluded  Boolean  @default(false) // 是否被排除
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   poll      Poll     @relation(fields: [pollId], references: [id], onDelete: Cascade)

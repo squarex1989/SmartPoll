@@ -5,7 +5,7 @@ import prisma from '@/lib/db'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { pollId, name, scoreA } = body
+    const { pollId, name, scoreA, location } = body
 
     // 基本验证
     if (!pollId || !name || scoreA === undefined) {
@@ -61,6 +61,7 @@ export async function POST(request: NextRequest) {
         scoreA: scoreANum,
         scoreB: scoreBNum,
         userAgent,
+        location: location || undefined,
         updatedAt: new Date(),
       },
       create: {
@@ -69,6 +70,7 @@ export async function POST(request: NextRequest) {
         scoreA: scoreANum,
         scoreB: scoreBNum,
         userAgent,
+        location: location || undefined,
       },
     })
 

@@ -77,6 +77,35 @@ export default function VotePage({ params }: { params: { id: string } }) {
     }
   }
 
+  // 获取地理位置
+  const getLocation = (): Promise<string | null> => {
+    return new Promise((resolve) => {
+      if (!navigator.geolocation) {
+        resolve(null)
+        return
+      }
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          try {
+            // 使用免费的反向地理编码 API
+            const { latitude, longitude } = position.coords
+            const res = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&accept-language=zh-CN`
+            )
+            const data = await res.json()
+            const city = data.address?.city || data.address?.town || data.address?.county || ''
+            const district = data.address?.district || data.address?.suburb || ''
+            resolve(district ? `${city} ${district}` : city || `${latitude.toFixed(2)}, ${longitude.toFixed(2)}`)
+          } catch {
+            resolve(`${position.coords.latitude.toFixed(2)}, ${position.coords.longitude.toFixed(2)}`)
+          }
+        },
+        () => resolve(null),
+        { timeout: 5000 }
+      )
+    })
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!name.trim()) {
@@ -86,6 +115,9 @@ export default function VotePage({ params }: { params: { id: string } }) {
 
     setSubmitting(true)
     try {
+      // 尝试获取地理位置
+      const location = await getLocation()
+      
       const res = await fetch('/api/vote', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -93,6 +125,7 @@ export default function VotePage({ params }: { params: { id: string } }) {
           pollId,
           name: name.trim(),
           scoreA,
+          location,
         }),
       })
 

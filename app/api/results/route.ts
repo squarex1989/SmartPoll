@@ -45,8 +45,11 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // 只计算未排除的投票
+    const activeVotes = poll.votes.filter(v => !v.excluded)
+    
     const results = calculateResults(
-      poll.votes,
+      activeVotes,
       poll.vetoZeroPctThreshold,
       poll.closeDiffPctThreshold
     )
@@ -54,20 +57,27 @@ export async function GET(request: NextRequest) {
     // 投票是否已截止
     const isClosed = poll.deadline ? new Date() > poll.deadline : false
 
-    // 管理员可以看到完整投票详情
+    // 管理员可以看到完整投票详情（包括排除状态）
     const voteDetails = isAdmin ? poll.votes.map(v => ({
+      id: v.id,
       name: v.name,
       scoreA: v.scoreA,
       scoreB: v.scoreB,
+      location: v.location,
+      excluded: v.excluded,
       createdAt: v.createdAt,
+      updatedAt: v.updatedAt,
     })) : null
 
-    // 分享视图：匿名化的投票详情（保护隐私但证明公平）
-    const anonymousVotes = isSharedView || isAdmin ? poll.votes.map((v, i) => ({
+    // 分享视图：匿名化的投票详情（仅显示未排除的）
+    const anonymousVotes = (isSharedView || isAdmin) ? activeVotes.map((v, i) => ({
       index: i + 1,
       scoreA: v.scoreA,
       scoreB: v.scoreB,
     })) : null
+
+    // 统计排除的票数
+    const excludedCount = poll.votes.filter(v => v.excluded).length
 
     return NextResponse.json({
       success: true,
@@ -84,9 +94,11 @@ export async function GET(request: NextRequest) {
       results,
       isAdmin,
       isSharedView,
-      voteDetails,      // 仅管理员可见
-      anonymousVotes,   // 分享视图可见（匿名）
+      voteDetails,      // 仅管理员可见（包含所有票，含排除状态）
+      anonymousVotes,   // 分享视图可见（仅未排除的匿名票）
+      excludedCount,    // 被排除的票数
       shareToken: isAdmin ? validShareToken : undefined,
+      adminToken: isAdmin ? poll.adminToken : undefined,
     })
   } catch (error) {
     console.error('Get results error:', error)

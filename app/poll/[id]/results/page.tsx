@@ -17,10 +17,14 @@ interface PollInfo {
 }
 
 interface VoteDetail {
+  id: string
   name: string
   scoreA: number
   scoreB: number
+  location?: string | null
+  excluded: boolean
   createdAt: string
+  updatedAt: string
 }
 
 interface AnonymousVote {
@@ -40,9 +44,12 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
   const [voteDetails, setVoteDetails] = useState<VoteDetail[] | null>(null)
   const [anonymousVotes, setAnonymousVotes] = useState<AnonymousVote[] | null>(null)
   const [shareToken, setShareToken] = useState<string | null>(null)
+  const [adminToken, setAdminToken] = useState<string | null>(null)
+  const [excludedCount, setExcludedCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [copiedShare, setCopiedShare] = useState(false)
+  const [updating, setUpdating] = useState<string | null>(null)
 
   useEffect(() => {
     loadResults()
@@ -50,15 +57,12 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
 
   const loadResults = async () => {
     try {
-      // 检查 URL 中的参数
       const adminTokenFromUrl = searchParams.get('admin')
       const shareTokenFromUrl = searchParams.get('share')
-      
-      // 检查 localStorage 中的管理员令牌
-      const adminToken = adminTokenFromUrl || localStorage.getItem(`poll_admin_${pollId}`)
+      const storedAdminToken = adminTokenFromUrl || localStorage.getItem(`poll_admin_${pollId}`)
       
       let url = `/api/results?pollId=${pollId}`
-      if (adminToken) url += `&admin=${adminToken}`
+      if (storedAdminToken) url += `&admin=${storedAdminToken}`
       if (shareTokenFromUrl) url += `&share=${shareTokenFromUrl}`
 
       const res = await fetch(url)
@@ -72,6 +76,8 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
         setVoteDetails(data.voteDetails)
         setAnonymousVotes(data.anonymousVotes)
         setShareToken(data.shareToken)
+        setAdminToken(data.adminToken)
+        setExcludedCount(data.excludedCount || 0)
       } else {
         setError(data.error || '获取结果失败')
       }
@@ -82,33 +88,63 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
     }
   }
 
+  const toggleExclude = async (voteId: string, currentExcluded: boolean) => {
+    if (!adminToken) return
+    setUpdating(voteId)
+    
+    try {
+      const res = await fetch('/api/vote/exclude', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          voteId,
+          pollId,
+          adminToken,
+          excluded: !currentExcluded,
+        }),
+      })
+      
+      const data = await res.json()
+      if (data.success) {
+        // 重新加载结果
+        await loadResults()
+      } else {
+        alert(data.error || '操作失败')
+      }
+    } catch (err) {
+      alert('网络错误')
+    } finally {
+      setUpdating(null)
+    }
+  }
+
+  const formatTime = (dateStr: string) => {
+    const date = new Date(dateStr)
+    return date.toLocaleString('zh-CN', {
+      month: 'numeric',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }
+
   const getStatusClass = (status: PollStatus) => {
     switch (status) {
-      case 'CLEAR_WIN':
-        return 'status-clear-win'
-      case 'CLOSE_CALL':
-        return 'status-close-call'
-      case 'VETO_RISK':
-        return 'status-veto-risk'
-      case 'TIE':
-        return 'status-tie'
-      default:
-        return ''
+      case 'CLEAR_WIN': return 'status-clear-win'
+      case 'CLOSE_CALL': return 'status-close-call'
+      case 'VETO_RISK': return 'status-veto-risk'
+      case 'TIE': return 'status-tie'
+      default: return ''
     }
   }
 
   const getStatusIcon = (status: PollStatus) => {
     switch (status) {
-      case 'CLEAR_WIN':
-        return '🎉'
-      case 'CLOSE_CALL':
-        return '📊'
-      case 'VETO_RISK':
-        return '⚠️'
-      case 'TIE':
-        return '🤝'
-      default:
-        return '📋'
+      case 'CLEAR_WIN': return '🎉'
+      case 'CLOSE_CALL': return '📊'
+      case 'VETO_RISK': return '⚠️'
+      case 'TIE': return '🤝'
+      default: return '📋'
     }
   }
 
@@ -184,9 +220,11 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
         <div className="glass rounded-2xl p-8 mb-8 animate-slide-up animate-stagger-2">
           <h2 className="font-display text-xl font-semibold text-white mb-6 text-center">
             总分对比
+            {excludedCount > 0 && (
+              <span className="ml-2 text-xs text-yellow-400">（已排除 {excludedCount} 票）</span>
+            )}
           </h2>
 
-          {/* Visual Bar */}
           <div className="mb-8">
             <div className="flex justify-between mb-2">
               <span className="text-poll-accent font-semibold">{poll.optionATitle}</span>
@@ -216,7 +254,6 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
             </div>
           </div>
 
-          {/* Stats Grid */}
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-poll-accent/10 rounded-xl p-4 text-center">
               <div className="text-3xl font-bold text-poll-accent">{results.aTotal}</div>
@@ -229,43 +266,78 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
           </div>
         </div>
 
-        {/* Vote Details - Admin View (with names) */}
+        {/* Vote Details - Admin View */}
         {isAdmin && voteDetails && voteDetails.length > 0 && (
           <div className="glass rounded-2xl p-8 mb-8 animate-slide-up animate-stagger-3">
-            <h2 className="font-display text-xl font-semibold text-white mb-6 text-center">
-              投票详情 <span className="text-xs text-poll-accent">（仅管理员可见姓名）</span>
+            <h2 className="font-display text-xl font-semibold text-white mb-2 text-center">
+              投票详情
             </h2>
+            <p className="text-center text-gray-500 text-sm mb-6">
+              点击"排除"可将可疑投票从统计中移除
+            </p>
             <div className="space-y-3">
               {voteDetails.map((vote, index) => (
                 <div 
-                  key={index}
-                  className="flex items-center justify-between p-3 bg-poll-dark/30 rounded-xl"
+                  key={vote.id}
+                  className={`p-4 rounded-xl transition-all ${
+                    vote.excluded 
+                      ? 'bg-red-900/20 border border-red-500/30 opacity-60' 
+                      : 'bg-poll-dark/30'
+                  }`}
                 >
-                  <div className="flex items-center gap-3">
-                    <span className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-sm text-gray-400">
-                      {index + 1}
-                    </span>
-                    <span className="text-white font-medium">{vote.name}</span>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm ${
+                        vote.excluded ? 'bg-red-500/20 text-red-400' : 'bg-white/10 text-gray-400'
+                      }`}>
+                        {vote.excluded ? '✕' : index + 1}
+                      </span>
+                      <div>
+                        <span className={`font-medium ${vote.excluded ? 'text-gray-500 line-through' : 'text-white'}`}>
+                          {vote.name}
+                        </span>
+                        {vote.excluded && (
+                          <span className="ml-2 text-xs text-red-400">已排除</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span 
+                        className={`px-3 py-1 rounded-lg text-sm font-semibold ${vote.excluded ? 'opacity-50' : ''}`}
+                        style={{
+                          backgroundColor: `rgba(0, 212, 170, ${0.1 + vote.scoreA * 0.05})`,
+                          color: vote.scoreA >= 5 ? '#00d4aa' : '#6b7280'
+                        }}
+                      >
+                        A:{vote.scoreA}
+                      </span>
+                      <span 
+                        className={`px-3 py-1 rounded-lg text-sm font-semibold ${vote.excluded ? 'opacity-50' : ''}`}
+                        style={{
+                          backgroundColor: `rgba(255, 107, 107, ${0.1 + vote.scoreB * 0.05})`,
+                          color: vote.scoreB >= 5 ? '#ff6b6b' : '#6b7280'
+                        }}
+                      >
+                        B:{vote.scoreB}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span 
-                      className="px-3 py-1 rounded-lg text-sm font-semibold"
-                      style={{
-                        backgroundColor: `rgba(0, 212, 170, ${0.1 + vote.scoreA * 0.05})`,
-                        color: vote.scoreA >= 5 ? '#00d4aa' : '#6b7280'
-                      }}
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-4 text-gray-500">
+                      <span>🕐 {formatTime(vote.createdAt)}</span>
+                      {vote.location && <span>📍 {vote.location}</span>}
+                    </div>
+                    <button
+                      onClick={() => toggleExclude(vote.id, vote.excluded)}
+                      disabled={updating === vote.id}
+                      className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+                        vote.excluded
+                          ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
+                          : 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
+                      } disabled:opacity-50`}
                     >
-                      A:{vote.scoreA}
-                    </span>
-                    <span 
-                      className="px-3 py-1 rounded-lg text-sm font-semibold"
-                      style={{
-                        backgroundColor: `rgba(255, 107, 107, ${0.1 + vote.scoreB * 0.05})`,
-                        color: vote.scoreB >= 5 ? '#ff6b6b' : '#6b7280'
-                      }}
-                    >
-                      B:{vote.scoreB}
-                    </span>
+                      {updating === vote.id ? '...' : vote.excluded ? '恢复采用' : '排除'}
+                    </button>
                   </div>
                 </div>
               ))}
@@ -307,13 +379,11 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
           </h2>
 
           <div className="space-y-4">
-            {/* Total Voters */}
             <div className="flex justify-between items-center py-3 border-b border-white/10">
-              <span className="text-gray-400">总投票人数</span>
+              <span className="text-gray-400">有效投票人数</span>
               <span className="text-white font-semibold text-xl">{results.totalVotes} 人</span>
             </div>
 
-            {/* Preference Distribution */}
             <div className="flex justify-between items-center py-3 border-b border-white/10">
               <span className="text-gray-400">偏好 A 的人数</span>
               <span className="text-poll-accent font-semibold">{results.aHigherCount} 人</span>
@@ -327,7 +397,6 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
               <span className="text-poll-secondary font-semibold">{results.bHigherCount} 人</span>
             </div>
 
-            {/* Zero Counts (Veto indicator) */}
             <div className="mt-6 pt-4 border-t border-white/10">
               <h3 className="text-sm font-medium text-gray-500 mb-3">强烈反对指标（0分）</h3>
               <div className="grid grid-cols-2 gap-4">
@@ -382,7 +451,6 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
               </button>
               <button
                 onClick={() => {
-                  const adminToken = localStorage.getItem(`poll_admin_${pollId}`)
                   const shareUrl = `${window.location.origin}/poll/${pollId}/results?admin=${adminToken}`
                   navigator.clipboard.writeText(shareUrl)
                   alert('管理员结果链接已复制！')
