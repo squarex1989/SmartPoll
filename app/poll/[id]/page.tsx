@@ -207,30 +207,34 @@ export default function VotePage({ params }: { params: { id: string } }) {
               )}
             </div>
 
-            {/* Score Display - 数字大小随分数变化 */}
+            {/* Score Display - 数字大小随分数变化，固定高度 */}
             <div className="flex justify-between items-center mb-4">
               <div className="text-center flex-1">
-                <div 
-                  className="font-bold text-poll-accent mb-1 transition-all duration-200"
-                  style={{ 
-                    fontSize: `${2 + scoreA * 0.3}rem`,
-                    opacity: 0.4 + scoreA * 0.06
-                  }}
-                >
-                  {scoreA}
+                <div className="h-20 flex items-center justify-center">
+                  <div 
+                    className="font-bold text-poll-accent transition-all duration-200"
+                    style={{ 
+                      fontSize: `${2 + scoreA * 0.3}rem`,
+                      opacity: 0.4 + scoreA * 0.06
+                    }}
+                  >
+                    {scoreA}
+                  </div>
                 </div>
                 <div className="text-sm text-gray-400">给 A 的分数</div>
               </div>
               <div className="text-gray-500 text-2xl px-4">/</div>
               <div className="text-center flex-1">
-                <div 
-                  className="font-bold text-poll-secondary mb-1 transition-all duration-200"
-                  style={{ 
-                    fontSize: `${2 + scoreB * 0.3}rem`,
-                    opacity: 0.4 + scoreB * 0.06
-                  }}
-                >
-                  {scoreB}
+                <div className="h-20 flex items-center justify-center">
+                  <div 
+                    className="font-bold text-poll-secondary transition-all duration-200"
+                    style={{ 
+                      fontSize: `${2 + scoreB * 0.3}rem`,
+                      opacity: 0.4 + scoreB * 0.06
+                    }}
+                  >
+                    {scoreB}
+                  </div>
                 </div>
                 <div className="text-sm text-gray-400">给 B 的分数</div>
               </div>
