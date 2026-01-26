@@ -207,15 +207,31 @@ export default function VotePage({ params }: { params: { id: string } }) {
               )}
             </div>
 
-            {/* Score Display */}
+            {/* Score Display - 数字大小随分数变化 */}
             <div className="flex justify-between items-center mb-4">
-              <div className="text-center">
-                <div className="text-4xl font-bold text-poll-accent mb-1">{scoreA}</div>
+              <div className="text-center flex-1">
+                <div 
+                  className="font-bold text-poll-accent mb-1 transition-all duration-200"
+                  style={{ 
+                    fontSize: `${2 + scoreA * 0.3}rem`,
+                    opacity: 0.4 + scoreA * 0.06
+                  }}
+                >
+                  {scoreA}
+                </div>
                 <div className="text-sm text-gray-400">给 A 的分数</div>
               </div>
-              <div className="text-gray-500 text-2xl">/</div>
-              <div className="text-center">
-                <div className="text-4xl font-bold text-poll-secondary mb-1">{scoreB}</div>
+              <div className="text-gray-500 text-2xl px-4">/</div>
+              <div className="text-center flex-1">
+                <div 
+                  className="font-bold text-poll-secondary mb-1 transition-all duration-200"
+                  style={{ 
+                    fontSize: `${2 + scoreB * 0.3}rem`,
+                    opacity: 0.4 + scoreB * 0.06
+                  }}
+                >
+                  {scoreB}
+                </div>
                 <div className="text-sm text-gray-400">给 B 的分数</div>
               </div>
             </div>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import type { PollResults, PollStatus } from '@/lib/types'
 
 interface PollInfo {
@@ -16,14 +16,33 @@ interface PollInfo {
   isClosed: boolean
 }
 
+interface VoteDetail {
+  name: string
+  scoreA: number
+  scoreB: number
+  createdAt: string
+}
+
+interface AnonymousVote {
+  index: number
+  scoreA: number
+  scoreB: number
+}
+
 export default function ResultsPage({ params }: { params: { id: string } }) {
   const routeParams = useParams()
+  const searchParams = useSearchParams()
   const pollId = (routeParams?.id as string) || params?.id
   const [poll, setPoll] = useState<PollInfo | null>(null)
   const [results, setResults] = useState<PollResults | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [isSharedView, setIsSharedView] = useState(false)
+  const [voteDetails, setVoteDetails] = useState<VoteDetail[] | null>(null)
+  const [anonymousVotes, setAnonymousVotes] = useState<AnonymousVote[] | null>(null)
+  const [shareToken, setShareToken] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [copiedShare, setCopiedShare] = useState(false)
 
   useEffect(() => {
     loadResults()
@@ -31,11 +50,16 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
 
   const loadResults = async () => {
     try {
-      // 检查是否有管理员令牌
-      const adminToken = localStorage.getItem(`poll_admin_${pollId}`)
-      const url = adminToken
-        ? `/api/results?pollId=${pollId}&admin=${adminToken}`
-        : `/api/results?pollId=${pollId}`
+      // 检查 URL 中的参数
+      const adminTokenFromUrl = searchParams.get('admin')
+      const shareTokenFromUrl = searchParams.get('share')
+      
+      // 检查 localStorage 中的管理员令牌
+      const adminToken = adminTokenFromUrl || localStorage.getItem(`poll_admin_${pollId}`)
+      
+      let url = `/api/results?pollId=${pollId}`
+      if (adminToken) url += `&admin=${adminToken}`
+      if (shareTokenFromUrl) url += `&share=${shareTokenFromUrl}`
 
       const res = await fetch(url)
       const data = await res.json()
@@ -44,6 +68,10 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
         setPoll(data.poll)
         setResults(data.results)
         setIsAdmin(data.isAdmin)
+        setIsSharedView(data.isSharedView)
+        setVoteDetails(data.voteDetails)
+        setAnonymousVotes(data.anonymousVotes)
+        setShareToken(data.shareToken)
       } else {
         setError(data.error || '获取结果失败')
       }
@@ -81,6 +109,15 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
         return '🤝'
       default:
         return '📋'
+    }
+  }
+
+  const copyShareLink = () => {
+    if (shareToken) {
+      const shareUrl = `${window.location.origin}/poll/${pollId}/results?share=${shareToken}`
+      navigator.clipboard.writeText(shareUrl)
+      setCopiedShare(true)
+      setTimeout(() => setCopiedShare(false), 2000)
     }
   }
 
@@ -131,6 +168,7 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
           <p className="text-poll-muted">
             投票结果
             {isAdmin && <span className="ml-2 text-xs bg-poll-accent/20 text-poll-accent px-2 py-1 rounded">管理员</span>}
+            {isSharedView && !isAdmin && <span className="ml-2 text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded">公开分享</span>}
           </p>
         </div>
 
@@ -190,6 +228,77 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
             </div>
           </div>
         </div>
+
+        {/* Vote Details - Admin View (with names) */}
+        {isAdmin && voteDetails && voteDetails.length > 0 && (
+          <div className="glass rounded-2xl p-8 mb-8 animate-slide-up animate-stagger-3">
+            <h2 className="font-display text-xl font-semibold text-white mb-6 text-center">
+              投票详情 <span className="text-xs text-poll-accent">（仅管理员可见姓名）</span>
+            </h2>
+            <div className="space-y-3">
+              {voteDetails.map((vote, index) => (
+                <div 
+                  key={index}
+                  className="flex items-center justify-between p-3 bg-poll-dark/30 rounded-xl"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-sm text-gray-400">
+                      {index + 1}
+                    </span>
+                    <span className="text-white font-medium">{vote.name}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span 
+                      className="px-3 py-1 rounded-lg text-sm font-semibold"
+                      style={{
+                        backgroundColor: `rgba(0, 212, 170, ${0.1 + vote.scoreA * 0.05})`,
+                        color: vote.scoreA >= 5 ? '#00d4aa' : '#6b7280'
+                      }}
+                    >
+                      A:{vote.scoreA}
+                    </span>
+                    <span 
+                      className="px-3 py-1 rounded-lg text-sm font-semibold"
+                      style={{
+                        backgroundColor: `rgba(255, 107, 107, ${0.1 + vote.scoreB * 0.05})`,
+                        color: vote.scoreB >= 5 ? '#ff6b6b' : '#6b7280'
+                      }}
+                    >
+                      B:{vote.scoreB}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Anonymous Vote Details - Shared View */}
+        {isSharedView && !isAdmin && anonymousVotes && anonymousVotes.length > 0 && (
+          <div className="glass rounded-2xl p-8 mb-8 animate-slide-up animate-stagger-3">
+            <h2 className="font-display text-xl font-semibold text-white mb-4 text-center">
+              投票明细
+            </h2>
+            <p className="text-center text-gray-500 text-sm mb-6">
+              为保护隐私，投票者姓名已隐藏，但每票均真实记录
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {anonymousVotes.map((vote) => (
+                <div 
+                  key={vote.index}
+                  className="flex items-center justify-between p-2 bg-poll-dark/30 rounded-lg text-sm"
+                >
+                  <span className="text-gray-500">#{vote.index}</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-poll-accent">{vote.scoreA}</span>
+                    <span className="text-gray-600">/</span>
+                    <span className="text-poll-secondary">{vote.scoreB}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Distribution */}
         <div className="glass rounded-2xl p-8 mb-8 animate-slide-up animate-stagger-3">
@@ -258,7 +367,7 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
 
         {/* Admin Actions */}
         {isAdmin && (
-          <div className="glass rounded-2xl p-6 animate-slide-up animate-stagger-4">
+          <div className="glass rounded-2xl p-6 mb-8 animate-slide-up animate-stagger-4">
             <h3 className="font-semibold text-white mb-4">管理员操作</h3>
             <div className="space-y-3">
               <button
@@ -282,6 +391,29 @@ export default function ResultsPage({ params }: { params: { id: string } }) {
               >
                 🔑 复制管理员结果链接
               </button>
+              <button
+                onClick={copyShareLink}
+                className="w-full py-3 bg-gradient-to-r from-blue-500/20 to-purple-500/20 hover:from-blue-500/30 hover:to-purple-500/30 text-white rounded-xl transition-all border border-blue-500/30"
+              >
+                {copiedShare ? '✅ 已复制！' : '🔗 复制公开分享链接（隐私保护）'}
+              </button>
+              <p className="text-xs text-gray-500 text-center mt-2">
+                公开分享链接：任何人可查看结果，但投票者姓名会被隐藏
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Shared View Notice */}
+        {isSharedView && !isAdmin && (
+          <div className="glass rounded-2xl p-6 mb-8 animate-slide-up border border-blue-500/30">
+            <div className="text-center">
+              <div className="text-2xl mb-2">🔒</div>
+              <p className="text-gray-300 text-sm">
+                这是公开分享的投票结果，为保护投票者隐私，姓名已隐藏。
+                <br />
+                每张选票均已真实记录，确保结果公平透明。
+              </p>
             </div>
           </div>
         )}
