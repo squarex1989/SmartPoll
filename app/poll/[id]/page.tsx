@@ -260,9 +260,9 @@ export default function VotePage({ params }: { params: { id: string } }) {
                 style={{ '--slider-progress': `${sliderProgress}%` } as React.CSSProperties}
               />
               <div className="flex justify-between text-xs text-gray-500 mt-2">
-                <span>全给 A</span>
-                <span>平分</span>
                 <span>全给 B</span>
+                <span>平分</span>
+                <span>全给 A</span>
               </div>
             </div>
 
