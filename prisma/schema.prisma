@@ -1,0 +1,47 @@
+// This is your Prisma schema file
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Poll {
+  id                    String   @id @default(cuid())
+  title                 String
+  optionATitle          String
+  optionADescription    String?
+  optionAImage          String?
+  optionBTitle          String
+  optionBDescription    String?
+  optionBImage          String?
+  deadline              DateTime?
+  vetoZeroPctThreshold  Float    @default(0.2)
+  closeDiffPctThreshold Float    @default(0.05)
+  showResultsToAll      Boolean  @default(false)
+  allowEditBeforeDeadline Boolean @default(true)
+  adminToken            String   @default(cuid())
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  votes                 Vote[]
+}
+
+model Vote {
+  id        String   @id @default(cuid())
+  pollId    String
+  name      String
+  scoreA    Int
+  scoreB    Int
+  userAgent String?
+  ipHash    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  poll      Poll     @relation(fields: [pollId], references: [id], onDelete: Cascade)
+
+  @@unique([pollId, name])
+  @@index([pollId])
+}
