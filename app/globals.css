@@ -17,12 +17,7 @@ input[type="range"] {
   width: 100%;
   height: 12px;
   border-radius: 6px;
-  background: linear-gradient(to right, 
-    #00d4aa 0%, 
-    #00d4aa var(--slider-progress, 50%), 
-    #ff6b6b var(--slider-progress, 50%), 
-    #ff6b6b 100%
-  );
+  background: #4b5563;
   cursor: pointer;
   transition: all 0.2s ease;
 }

@@ -264,7 +264,7 @@ export default function VotePage({ params }: { params: { id: string } }) {
                     {scoreA}
                   </div>
                 </div>
-                <div className="text-sm text-gray-400">给 A 的分数</div>
+                <div className="text-sm text-gray-400 truncate max-w-[120px] mx-auto" title={`我选${poll.optionATitle}`}>我选{poll.optionATitle}</div>
               </div>
               <div className="text-gray-500 text-2xl px-4">/</div>
               <div className="text-center flex-1">
@@ -279,7 +279,7 @@ export default function VotePage({ params }: { params: { id: string } }) {
                     {scoreB}
                   </div>
                 </div>
-                <div className="text-sm text-gray-400">给 B 的分数</div>
+                <div className="text-sm text-gray-400 truncate max-w-[120px] mx-auto" title={`我选${poll.optionBTitle}`}>我选{poll.optionBTitle}</div>
               </div>
             </div>
 
@@ -303,7 +303,7 @@ export default function VotePage({ params }: { params: { id: string } }) {
 
             {/* Quick Select */}
             <div className="flex flex-wrap justify-center gap-2 mb-8">
-              {[0, 3, 5, 7, 10].map((score) => (
+              {[10, 7, 5, 3, 0].map((score) => (
                 <button
                   key={score}
                   type="button"
